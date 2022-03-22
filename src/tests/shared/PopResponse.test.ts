@@ -1,5 +1,4 @@
 import assert from 'assert';
-import { describe, it } from 'mocha';
 import { LINE_SEPARATOR } from '../../shared/Constants';
 import { PopResponse, PopResponseType } from '../../shared/PopResponse';
 

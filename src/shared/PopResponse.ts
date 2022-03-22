@@ -45,6 +45,7 @@ export class PopResponse {
     /**
      * Decodes the given response string.
      * @param raw the raw response.
+     * @returns the parsed response.
      */
     public static decode(raw: string): PopResponse {
         raw = raw.trim();
