@@ -67,7 +67,7 @@ describe('PopCommand', function () {
 
             assert.throws(function () {
                 PopCommand.decode(raw_command);
-            }, Error, 'Raw string does not contain any separator.');
+            }, Error, 'Command syntax error.');
         });
 
         it('Errors at invalid type', function () {

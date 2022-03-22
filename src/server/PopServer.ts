@@ -1,7 +1,10 @@
 import net from 'net';
+import { EventEmitter } from 'stream';
 import tls from 'tls';
+import { PopSocket } from '../shared/PopSocket';
+import { PopServerConnection } from './PopServerConnection';
 
-export class PopServer {
+export class PopServer extends EventEmitter {
     protected plain_server: net.Server | null;
     protected secure_server: tls.Server | null;
 
@@ -11,9 +14,12 @@ export class PopServer {
      * @param plain_port the plain port to listen on.
      * @param secure_port the secure port to listen on.
      * @param backlog the backlog.
+     * @param timeout the timeout of sockets in ms.
      */
     public constructor(public readonly hostname: string = '0.0.0.0', public readonly plain_port: number = 110,
-        public readonly secure_port: number = 995, public readonly backlog: number = 500) {
+        public readonly secure_port: number = 995, public readonly backlog: number = 500, public readonly timeout: number = 1000 * 60) {
+        super();
+
         this.plain_server = null;
         this.secure_server = null;
     }
@@ -23,12 +29,16 @@ export class PopServer {
      * @returns ourselves.
      */
     public run(): PopServer {
+        // Plain
+        
         this.plain_server = net.createServer();
 
         this.plain_server.on('connection', (socket: net.Socket) => this._event_connection(false, socket));
         this.plain_server.on('error', (err: Error) => this._event_error(false, err))
 
         this.plain_server.listen(this.plain_port, this.hostname, this.backlog, () => this._event_listening(false));
+
+        // Secure
 
         this.secure_server = tls.createServer();
 
@@ -57,7 +67,7 @@ export class PopServer {
      * @param err the possible error.
      */
     protected _event_close(secure: boolean, err: Error | undefined): void {
-
+        this.emit('server_close', secure, err);
     }
 
     /**
@@ -65,7 +75,7 @@ export class PopServer {
      * @param secure if this is the secure server.
      */
     protected _event_listening(secure: boolean): void {
-
+        this.emit('server_listening', secure);
     }
 
     /**
@@ -74,7 +84,7 @@ export class PopServer {
      * @param err the error.
      */
     protected _event_error(secure: boolean, err: Error): void {
-
+        this.emit('server_error', secure, err);
     }
 
     /**
@@ -83,6 +93,13 @@ export class PopServer {
      * @param socket the socket.
      */
     protected _event_connection(secure: boolean, socket: net.Socket | tls.TLSSocket): void {
+        const pop_sock: PopSocket = new PopSocket(secure, socket);
+        pop_sock.on('close', (_: boolean) => this.emit('client_disconnected', secure, pop_sock));
+        pop_sock.set_timeout(this.timeout);
 
+        const connection: PopServerConnection = new PopServerConnection(pop_sock); // The instance will listen and just handle the stuff.
+        connection.begin();
+
+        this.emit('client_connected', secure, pop_sock);
     }
 }
