@@ -13,6 +13,7 @@
 */
 
 import { LINE_SEPARATOR, SEGMENT_SEPARATOR } from "./Constants";
+import { PopExtRespCode } from "./PopExtRespCode";
 
 export enum PopResponseType {
     Success = '+OK',
@@ -24,8 +25,9 @@ export class PopResponse {
      * Constructs a new PopResponse.
      * @param type the type of response.
      * @param message the message.
+     * @param ext_resp_code the extended response code.
      */
-    public constructor(public readonly type: PopResponseType, public readonly message: string | string[] | null) { }
+    public constructor(public readonly type: PopResponseType, public readonly message: string | string[] | null, public readonly ext_resp_code: PopExtRespCode | null = null) { }
 
     /**
      * Encodes the current response instance.
@@ -36,6 +38,10 @@ export class PopResponse {
         let arr: string[] = [];
 
         arr.push(this.type);
+
+        if (this.ext_resp_code) {
+            arr.push(`[${this.ext_resp_code}]`);
+        }
 
         if (this.message !== null) {
             if (typeof(this.message) === 'string') {

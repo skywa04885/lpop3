@@ -3,8 +3,6 @@ import { Language, LanguageName } from "../languages/Language";
 import { get_language } from "../languages/LanguageProvider";
 import { ApopDigest } from "../shared/ApopDigest";
 import { CAPABILITIES, LINE_SEPARATOR } from "../shared/Constants";
-import { PopAuthRespCode } from "../shared/PopAuthRespCode";
-import { PopBanner } from "../shared/PopBanner";
 import { PopCommand, PopCommandType } from "../shared/PopCommand";
 import { PopMessage, PopMessageFlag } from "../shared/PopMessage";
 import { PopMultilineResponse } from "../shared/PopMultilineResponse";
@@ -15,6 +13,7 @@ import { PopSocket } from "../shared/PopSocket";
 import { PopUser } from "../shared/PopUser";
 import { PopServer } from "./PopServer";
 import { PopServerSession } from "./PopServerSession";
+import { PopExtRespCode } from '../shared/PopExtRespCode';
 
 export class PopServerConnection extends EventEmitter {
     protected segmented_reader: PopSegmentedReader;
@@ -182,7 +181,7 @@ export class PopServerConnection extends EventEmitter {
         const result: PopUser | null = await this.server.config.get_user(user, this);
         if (result === null) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
-                this.session.language.failure.permission_denied(this)).encode(true));
+                this.session.language.failure.permission_denied(this), PopExtRespCode.Auth).encode(true));
             return;
         }
 
@@ -194,7 +193,15 @@ export class PopServerConnection extends EventEmitter {
         if (generated_digest !== digest) {
             this.session.user = null;
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
-                this.session.language.failure.permission_denied(this)).encode(true));
+                this.session.language.failure.permission_denied(this), PopExtRespCode.Auth).encode(true));
+            return;
+        }
+
+        // Checks if the user is already in an session.
+        if (await this.server.config.is_in_use(this)) {
+            this.session.user = null;
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.in_use(this), PopExtRespCode.InUse).encode(true));
             return;
         }
 
@@ -219,7 +226,7 @@ export class PopServerConnection extends EventEmitter {
         });
 
         // Sends the success.
-        this.pop_sock.write(new PopResponse(PopResponseType.Success, 
+        this.pop_sock.write(new PopResponse(PopResponseType.Success,
             this.session.language.success.rset(this)).encode(true));
     }
 
@@ -275,7 +282,7 @@ export class PopServerConnection extends EventEmitter {
         });
         PopMultilineResponse.write_end(this.pop_sock);
     }
-    
+
     /**
      * Handles the DELE command.
      * @param command the command.
@@ -552,17 +559,28 @@ export class PopServerConnection extends EventEmitter {
 
         const pass: string = command.arguments[0];
 
+        // Checks the password.
         if (pass !== this.session.user.pass) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
-                [PopAuthRespCode.Auth, this.session.language.failure.pass.rejected(this)]).encode(true));
+                this.session.language.failure.pass.rejected(this), PopExtRespCode.Auth).encode(true));
+            return;
+        }
+        
+        // Checks if the user is already in an session.
+        if (await this.server.config.is_in_use(this)) {
+            this.session.user = null;
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.in_use(this), PopExtRespCode.InUse).encode(true));
             return;
         }
 
+        // Updates the state.
         this.session.state = PopSessionState.Transaction;
         this.session.messages = await this.server.config.receive_messages(this);
 
+        // Writes the success.
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
-            [PopAuthRespCode.Auth, this.session.language.success.pass.accepted(this)]).encode(true));
+            this.session.language.success.pass.accepted(this)).encode(true));
     }
 
     /**

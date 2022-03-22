@@ -30,6 +30,7 @@ export interface Language {
         no_such_message: (connection: PopServerConnection) => string,
         invalid_command: (connection: PopServerConnection) => string,
         permission_denied: (connection: PopServerConnection) => string,
+        in_use: (connection: PopServerConnection) => string,
     },
     success: {
         greeting: (connection: PopServerConnection) => string,

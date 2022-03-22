@@ -50,6 +50,9 @@ export const Dutch = {
         permission_denied: (connection: PopServerConnection) => {
             return `toegang geweigerd.`;
         },
+        in_use: (connection: PopServerConnection) => {
+            return 'heeft u nog een sessie open staan??';
+        },
     },
     success: {
         retr: (message: PopMessage, connection: PopServerConnection) => {

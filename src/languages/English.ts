@@ -50,6 +50,9 @@ export const English = {
         permission_denied: (connection: PopServerConnection) => {
             return `permission denied.`;
         },
+        in_use: (connection: PopServerConnection) => {
+            return 'do you have another POP session running?';
+        },
     },
     success: {
         retr: (message: PopMessage, connection: PopServerConnection) => {

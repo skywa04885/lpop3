@@ -31,6 +31,9 @@ const server = new PopServer({
 
         return null;
     },
+    is_in_use: async (connection: PopServerConnection) => {
+        return false;
+    },
     receive_messages: async (connection: PopServerConnection): Promise<PopMessage[]> => {
         return database;
     },
