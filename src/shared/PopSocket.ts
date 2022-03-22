@@ -33,6 +33,13 @@ export class PopSocket extends EventEmitter {
     }
 
     /**
+     * Closes the socket.
+     */
+    public close(): void {
+        this.socket.end();
+    }
+
+    /**
      * Gets the address string.
      */
     public get address(): string {

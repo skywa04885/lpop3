@@ -2,7 +2,9 @@ import net from 'net';
 import { EventEmitter } from 'stream';
 import tls from 'tls';
 import { PopSocket } from '../shared/PopSocket';
+import { PopServerConfig } from './PopServerConfig';
 import { PopServerConnection } from './PopServerConnection';
+import { PopServerSession } from './PopServerSession';
 
 export class PopServer extends EventEmitter {
     protected plain_server: net.Server | null;
@@ -10,13 +12,14 @@ export class PopServer extends EventEmitter {
 
     /**
      * Constructs a new PopServer.
+     * @parma config the configuration.
      * @param hostname the hostname to listen on.
      * @param plain_port the plain port to listen on.
      * @param secure_port the secure port to listen on.
      * @param backlog the backlog.
      * @param timeout the timeout of sockets in ms.
      */
-    public constructor(public readonly hostname: string = '0.0.0.0', public readonly plain_port: number = 110,
+    public constructor(public readonly config: PopServerConfig, public readonly hostname: string = '0.0.0.0', public readonly plain_port: number = 110,
         public readonly secure_port: number = 995, public readonly backlog: number = 500, public readonly timeout: number = 1000 * 60) {
         super();
 
@@ -97,7 +100,8 @@ export class PopServer extends EventEmitter {
         pop_sock.on('close', (_: boolean) => this.emit('client_disconnected', secure, pop_sock));
         pop_sock.set_timeout(this.timeout);
 
-        const connection: PopServerConnection = new PopServerConnection(pop_sock); // The instance will listen and just handle the stuff.
+        const session: PopServerSession = new PopServerSession(this.config.default_language);
+        const connection: PopServerConnection = new PopServerConnection(this, pop_sock, session); // The instance will listen and just handle the stuff.
         connection.begin();
 
         this.emit('client_connected', secure, pop_sock);
