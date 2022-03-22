@@ -1,28 +1,29 @@
 import { PopServerConnection } from "../server/PopServerConnection";
 import { PopCommandType } from "../shared/PopCommand";
+import { PopMessage } from "../shared/PopMessage";
 import { PopSessionState } from "../shared/PopSession";
 import { Language } from "./Language";
 
 export const Dutch = {
     failure: {
         user: {
-            rejected: (user: string, reason: string | null, connection: PopServerConnection) => {
-                return `gebruiker geweigerd${reason ? `, reden: ${reason}` : ''}`;
+            rejected: (connection: PopServerConnection) => {
+                return `gebruiker geweigerd`;
             },
             already_executed: (connection: PopServerConnection) => {
                 return `${PopCommandType.User} is al uitgevoerd, volg met ${PopCommandType.Pass}`;
             },
         },
         pass: {
-            rejected: (user: string, reason: string | null, connection: PopServerConnection) => {
-                return `wachtwoord geweigerd${reason ? `, reden: ${reason}` : ''}`;
+            rejected: (connection: PopServerConnection) => {
+                return `wachtwoord geweigerd`;
             }
         },
         invalid_state: (command_type: PopCommandType, required_state: PopSessionState, connection: PopServerConnection) => {
             return `${command_type} opdracht mag alleen worden uitgevoerd in de ${required_state} staat.`;
         },
         invalid_params: (command_type: PopCommandType, params: number, connection: PopServerConnection) => {
-            return `${command_type} vereist ${params > 1 ? 'een' : 'meerdere'} ${params > 1 ? 'argument' : 'argumenten'}, niet meer, niet minder.`;
+            return `${command_type} vereist ${params === 1 ? 'een' : 'meerdere'} ${params === 1 ? 'argument' : 'argumenten'}, niet meer, niet minder.`;
         },
         execute_command_first: (command_type: PopCommandType, execute_first_command_type: PopCommandType, connection: PopServerConnection) => {
             return `opdracht ${execute_first_command_type} moet uitgevoerd worden voor ${command_type}.`;
@@ -38,27 +39,36 @@ export const Dutch = {
         invalid_command: (conncetion: PopServerConnection) => {
             return 'Ongeldige opdracht.';
         },
-        uidl: {
-            no_such_message: (connection: PopServerConnection) => {
-                return `bericht bestaat niet, enkel ${connection.session.messages?.length} berichten in de maildrop.`;
+        dele: {
+            already_deleted: (index: number, connection: PopServerConnection) => {
+                return `bericht ${index} is al verwijderd.`;
             },
+        },
+        no_such_message: (connection: PopServerConnection) => {
+            return `bericht bestaat niet, enkel ${connection.session.messages?.length} berichten in de maildrop.`;
+        },
+        permission_denied: (connection: PopServerConnection) => {
+            return `toegang geweigerd.`;
         },
     },
     success: {
+        retr: (message: PopMessage, connection: PopServerConnection) => {
+            return `${message.size} bytes`;
+        },
         greeting: (connection: PopServerConnection) => {
-            return `Luke-${connection.pop_sock.secure ? 'POP3S' : 'POP3'} tot uw dienst, ${connection.pop_sock.family} ${connection.pop_sock.address}:${connection.pop_sock.port}.`
+            return `Luke-${connection.pop_sock.secure ? 'POP3S' : 'POP3'} tot uw dienst, ${connection.pop_sock.family} ${connection.pop_sock.address}:${connection.pop_sock.port}`
         },
         capa: (connection: PopServerConnection) => {
             return `mogelijkheden volgen.`;  
         },
         user: {
-            accepted: (user: string, connection: PopServerConnection) => {
-                return `gebruiker '${user}' geaccepteerd, volg met ${PopCommandType.Pass}`;
+            accepted: (connection: PopServerConnection) => {
+                return `gebruiker '${connection.session.user?.user}' geaccepteerd, volg met ${PopCommandType.Pass}`;
             },
         },
         pass: {
-            accepted: (user: string, connection: PopServerConnection) => {
-                return `wachtwoord geaccepteerd, welkom '${user}'.`;
+            accepted: (connection: PopServerConnection) => {
+                return `wachtwoord geaccepteerd, welkom '${connection.session.user?.user}'.`;
             },
         },
         quit: (connection: PopServerConnection) => {
@@ -69,9 +79,25 @@ export const Dutch = {
                 return 'de lijst van berichten volgt.';
             },
         },
+        list: (connection: PopServerConnection) => {
+            return `${connection.session.messages?.length} (${connection.session.messages_size_sum} bytes)`;
+        },
+        rset: (connection: PopServerConnection) => {
+            return `maildrop heeft ${connection.session.messages?.length} berichten (${connection.session.messages_size_sum} bytes).`;
+        },
+        dele: {
+            deleted: (index: number, connection: PopServerConnection) => {
+                return `bericht ${index} is verwijderd.`;
+            },
+        },
         language: {
             changing: (lang: string, connection: PopServerConnection) => {
                 return `taal wordt veranderd naar '${lang}'.`;
+            },
+        },
+        apop: {
+            logged_in: (connection: PopServerConnection) => {
+                return `maildrop heeft ${connection.session.messages?.length} berichten (${connection.session.messages_size_sum} bytes)`;
             },
         },
     },

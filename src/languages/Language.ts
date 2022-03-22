@@ -1,5 +1,6 @@
 import { PopServerConnection } from "../server/PopServerConnection";
 import { PopCommandType } from "../shared/PopCommand";
+import { PopMessage } from "../shared/PopMessage";
 import { PopSessionState } from "../shared/PopSession";
 
 export enum LanguageName {
@@ -10,11 +11,11 @@ export enum LanguageName {
 export interface Language {
     failure: {
         user: {
-            rejected: (user: string, reason: string | null, connection: PopServerConnection) => string,
+            rejected: (connection: PopServerConnection) => string,
             already_executed: (connection: PopServerConnection) => string,
         },
         pass: {
-            rejected: (user: string, reason: string | null, connection: PopServerConnection) => string,
+            rejected: (connection: PopServerConnection) => string,
         },
         invalid_state: (command_type: PopCommandType, required_state: PopSessionState, connection: PopServerConnection) => string,
         invalid_params: (command_type: PopCommandType, params: number, connection: PopServerConnection) => string,
@@ -23,26 +24,37 @@ export interface Language {
         language: {
             invalid: (lang: string, connection: PopServerConnection) => string,
         },
-        uidl: {
-            no_such_message: (connection: PopServerConnection) => string,
+        dele: {
+            already_deleted: (index: number, connection: PopServerConnection) => string,
         },
+        no_such_message: (connection: PopServerConnection) => string,
         invalid_command: (connection: PopServerConnection) => string,
+        permission_denied: (connection: PopServerConnection) => string,
     },
     success: {
         greeting: (connection: PopServerConnection) => string,
         capa: (connection: PopServerConnection) => string,
         user: {
-            accepted: (user: string, connection: PopServerConnection) => string,
+            accepted: (connection: PopServerConnection) => string,
         },
         pass: {
-            accepted: (user: string, connection: PopServerConnection) => string,
+            accepted: (connection: PopServerConnection) => string,
         },
         quit: (connetion: PopServerConnection) => string,
         uidl: {
             all: (connection: PopServerConnection) => string,
         },
+        retr: (message: PopMessage, connection: PopServerConnection) => string,
+        list: (connection: PopServerConnection) => string,
+        rset: (connection: PopServerConnection) => string,
+        dele: {
+            deleted: (index: number, connection: PopServerConnection) => string,
+        },
         language: {
             changing: (lang: string, connection: PopServerConnection) => string,
-        }
+        },
+        apop: {
+            logged_in: (connection: PopServerConnection) => string,
+        },
     },
 }

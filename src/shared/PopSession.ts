@@ -1,6 +1,6 @@
 export enum PopSessionState {
-    Authorization = 0,
-    Transaction = 1,
+    Authorization = 'AUTHORIZATION',
+    Transaction = 'TRANSACTION',
 }
 
 export class PopSession {

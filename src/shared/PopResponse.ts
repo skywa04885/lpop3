@@ -25,7 +25,7 @@ export class PopResponse {
      * @param type the type of response.
      * @param message the message.
      */
-    public constructor(public readonly type: PopResponseType, public readonly message: string | string[]) { }
+    public constructor(public readonly type: PopResponseType, public readonly message: string | string[] | null) { }
 
     /**
      * Encodes the current response instance.
@@ -37,11 +37,13 @@ export class PopResponse {
 
         arr.push(this.type);
 
-        if (typeof(this.message) === 'string') {
-            arr.push(this.message.trim());
-        } else {
-            for (const m of this.message) {
-                arr.push(m.trim());
+        if (this.message !== null) {
+            if (typeof(this.message) === 'string') {
+                arr.push(this.message.trim());
+            } else {
+                for (const m of this.message) {
+                    arr.push(m.trim());
+                }
             }
         }
 

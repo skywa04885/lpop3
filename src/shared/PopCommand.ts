@@ -28,6 +28,7 @@ export enum PopCommandType {
     Uidl = 'UIDL',
     Capa = 'CAPA',
     Lang = 'LANG',
+    Apop = 'APOP',
 }
 
 export class PopCommand {

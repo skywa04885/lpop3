@@ -9,6 +9,7 @@ import { PopServer } from "./server/PopServer";
 import { PopServerConnection } from './server/PopServerConnection';
 import { PopMessage } from './shared/PopMessage';
 import { PopSocket } from './shared/PopSocket';
+import { PopUser } from './shared/PopUser';
 
 let database: DatabasePopMessage[] = [
     new DatabasePopMessage(0, DATABASE_POP_MESSAGE.length, DATABASE_POP_MESSAGE),
@@ -23,26 +24,19 @@ let database: DatabasePopMessage[] = [
 ];
 
 const server = new PopServer({
-    validate_user: async (user: string, u: any) => {
-        if (user === 'luke') {
-            return true;
+    get_user: async (user: string, u: any) => {
+        if (user === 'luke.rieff@adsasdasdadadsasdadasda.com') {
+            return new PopUser('luke.rieff@adsasdasdadadsasdadasda.com', 'hello');
         }
 
-        return 'Not luke';
-    },
-    validate_pass: async (pass: string, u: any) => {
-        if (pass === 'hello') {
-            return true;
-        }
-
-        return 'Not hello';
+        return null;
     },
     receive_messages: async (connection: PopServerConnection): Promise<PopMessage[]> => {
         return database;
     },
     delete_messages: async (connection: PopServerConnection, messages: PopMessage[]): Promise<void> => {
         messages.forEach(message => {
-            database = database.splice(database.findIndex(a => a.uid == message.uid), 1);
+            database.splice(database.findIndex(a => (a.uid === message.uid)), 1);
         });
     },
     default_language: get_language(LanguageName.Dutch) as Language,

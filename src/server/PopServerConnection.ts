@@ -1,9 +1,11 @@
 import { EventEmitter } from "stream";
 import { Language, LanguageName } from "../languages/Language";
 import { get_language } from "../languages/LanguageProvider";
-import { CAPABILITIES } from "../shared/Constants";
+import { ApopDigest } from "../shared/ApopDigest";
+import { CAPABILITIES, LINE_SEPARATOR } from "../shared/Constants";
+import { PopBanner } from "../shared/PopBanner";
 import { PopCommand, PopCommandType } from "../shared/PopCommand";
-import { PopMessage } from "../shared/PopMessage";
+import { PopMessage, PopMessageFlag } from "../shared/PopMessage";
 import { PopMultilineResponse } from "../shared/PopMultilineResponse";
 import { PopResponse, PopResponseType } from "../shared/PopResponse";
 import { PopSegmentedReader } from "../shared/PopSegmentedReader";
@@ -35,7 +37,7 @@ export class PopServerConnection extends EventEmitter {
         this.pop_sock.on('data', (data: Buffer) => this._event_data(data));
 
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
-            this.session.language.success.greeting(this)).encode(true));
+            [this.session.language.success.greeting(this), this.session.banner.encode()]).encode(true));
 
         return this;
     }
@@ -71,7 +73,7 @@ export class PopServerConnection extends EventEmitter {
                     this._handle_capa();
                     break;
                 case PopCommandType.Quit:
-                    this._handle_quit();
+                    await this._handle_quit();
                     break;
                 case PopCommandType.Lang:
                     this._handle_lang(command);
@@ -88,6 +90,24 @@ export class PopServerConnection extends EventEmitter {
                 case PopCommandType.Uidl:
                     this._handle_uidl(command);
                     break;
+                case PopCommandType.Retr:
+                    await this._handle_retr(command);
+                    break;
+                case PopCommandType.List:
+                    await this._handle_list(command);
+                    break;
+                case PopCommandType.Noop:
+                    await this._handle_noop();
+                    break;
+                case PopCommandType.Rset:
+                    await this._handle_rset();
+                    break;
+                case PopCommandType.Dele:
+                    await this._handle_dele(command);
+                    break;
+                case PopCommandType.Apop:
+                    await this._handle_apop(command);
+                    break;
                 default:
                     this._handle_not_implemented(command);
                     break;
@@ -100,11 +120,24 @@ export class PopServerConnection extends EventEmitter {
     }
 
     /**
-     * Handles the quit command.
+     * Handles the QUIT command.
      */
-    protected _handle_quit(): void {
+    protected async _handle_quit(): Promise<void> {
+        // Deletes all the messages.
+        await this.server.config.delete_messages(this, this.session.messages?.filter(function (message) {
+            return (message.flags & PopMessageFlag.Delete) !== 0;
+        }) ?? []);
+
+        // Writes the response.
         this.pop_sock.write(new PopResponse(PopResponseType.Success, this.session.language.success.quit(this)).encode(true));
         this.pop_sock.close();
+    }
+
+    /**
+     * Handles the NOOP command.
+     */
+    protected _handle_noop(): void {
+        this.pop_sock.write(new PopResponse(PopResponseType.Success, null).encode(true));
     }
 
     /**
@@ -114,6 +147,233 @@ export class PopServerConnection extends EventEmitter {
         this.pop_sock.write(new PopResponse(PopResponseType.Success, this.session.language.success.capa(this)).encode(true));
         for (const capability of CAPABILITIES) {
             PopMultilineResponse.write_line(capability.encode(), this.pop_sock);
+        }
+        PopMultilineResponse.write_end(this.pop_sock);
+    }
+
+    /**
+     * Handles the APOP command.
+     * @param command the command.
+     */
+    protected async _handle_apop(command: PopCommand): Promise<void> {
+        // Makes sure we're in the correct state.
+        if (this.session.state !== PopSessionState.Authorization) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_state(PopCommandType.Apop,
+                    PopSessionState.Authorization, this)).encode(true));
+            return;
+        }
+
+        // Makes sure there are two arguments.
+        if (!command.arguments || command.arguments.length != 2) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_params(PopCommandType.User, 2, this)).encode(true));
+            return;
+        }
+
+        // Gets the arguments.
+        const args: string[] = command.arguments;
+        const user: string = args[0];
+        const digest: string = args[1];
+
+        // Makes sure the user exists.
+        const result: PopUser | null = await this.server.config.get_user(user, this);
+        if (result === null) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.permission_denied(this)).encode(true));
+            return;
+        }
+
+        // Sets the user.
+        this.session.user = result;
+
+        // Checks the digest.
+        const generated_digest: string = ApopDigest.generate(this.session.banner, this.session.user.pass);
+        if (generated_digest !== digest) {
+            this.session.user = null;
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.permission_denied(this)).encode(true));
+            return;
+        }
+
+        // Updates the session.
+        this.session.state = PopSessionState.Transaction;
+
+        // Loads the messages.
+        this.session.messages = await this.server.config.receive_messages(this);
+
+        // Sends the success message.
+        this.pop_sock.write(new PopResponse(PopResponseType.Success,
+            this.session.language.success.apop.logged_in(this)).encode(true));
+    }
+
+    /**
+     * Handles the RSET command.
+     */
+    protected _handle_rset(): void {
+        // Removes the delete flags from each message.
+        this.session.messages?.forEach(message => {
+            message.flags &= ~(PopMessageFlag.Delete);
+        });
+
+        // Sends the success.
+        this.pop_sock.write(new PopResponse(PopResponseType.Success, 
+            this.session.language.success.rset(this)).encode(true));
+    }
+
+    /**
+     * Handles the LIST command.
+     * @param command the command.
+     */
+    protected _handle_list(command: PopCommand): void {
+        // Makes sure we're in transaction state.
+        if (this.session.state !== PopSessionState.Transaction) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_state(PopCommandType.Stat,
+                    PopSessionState.Transaction, this)).encode(true));
+            return;
+        }
+
+        // Makes sure there are any messages in the first place.
+        if (!this.session.messages) {
+            throw new Error('Session has not loaded messages yet.');
+        }
+
+        // Checks if we have an argument, if so we need to fetch a specific one.
+        if (command.arguments) {
+            // If there are arguments but not the correct amount, throw an error.
+            if (command.arguments.length !== 1) {
+                this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                    this.session.language.failure.invalid_params(PopCommandType.List, 1, this)).encode(true));
+                return;
+            }
+
+            // Gets the index and subtracts one, and if the message does not exist
+            //  send an error.
+            const index: number = parseInt(command.arguments[0]) - 1;
+            if (index < 0 || index >= this.session.messages.length) {
+                this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                    this.session.language.failure.no_such_message(this)).encode(true));
+                return;
+            }
+
+            // Sends the UID for the given message.
+            this.pop_sock.write(new PopResponse(PopResponseType.Success,
+                [(index + 1).toString(), this.session.messages[index].size.toString()]).encode(true));
+            return;
+        }
+
+        // Writes the success mesasge.
+        this.pop_sock.write(new PopResponse(PopResponseType.Success,
+            this.session.language.success.list(this)).encode(true));
+
+        // Writes the list of all message sizes.
+        this.session.messages.forEach((message: PopMessage, index: number) => {
+            PopMultilineResponse.write_line([(index + 1).toString(), message.size.toString()], this.pop_sock);
+        });
+        PopMultilineResponse.write_end(this.pop_sock);
+    }
+    
+    /**
+     * Handles the DELE command.
+     * @param command the command.
+     */
+    protected _handle_dele(command: PopCommand): void {
+        // Makes sure we're in the transaction state.
+        if (this.session.state !== PopSessionState.Transaction) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_state(PopCommandType.Dele,
+                    PopSessionState.Transaction, this)).encode(true));
+            return;
+        }
+
+        // Makes sure there are messages at all.
+        if (!this.session.messages) {
+            throw new Error('Session has not loaded messages yet.');
+        }
+
+        // Makes sure there is a argument at all.
+        if (!command.arguments || command.arguments.length != 1) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_params(PopCommandType.Pass, 1, this)).encode(true));
+            return;
+        }
+
+        // Gets the index and subtracts one, and if the message does not exist
+        //  send an error.
+        const index: number = parseInt(command.arguments[0]) - 1;
+        if (index < 0 || index >= this.session.messages.length) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.no_such_message(this)).encode(true));
+            return;
+        }
+
+        // Gets the message.
+        let message: PopMessage = this.session.messages[index];
+
+        // Checks if the message is marked for deletion already.
+        if ((message.flags & PopMessageFlag.Delete) !== 0) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Success,
+                this.session.language.failure.dele.already_deleted(index, this)).encode(true));
+            return;
+        }
+
+        // Marks the message for deletion.
+        message.flags |= PopMessageFlag.Delete;
+
+        // Sends the success.
+        this.pop_sock.write(new PopResponse(PopResponseType.Success,
+            this.session.language.success.dele.deleted(index, this)).encode(true));
+    }
+
+    /**
+     * Handles the RETR command.
+     * @param command the command.
+     */
+    protected async _handle_retr(command: PopCommand): Promise<void> {
+        // Makes sure we're in the transaction state.
+        if (this.session.state !== PopSessionState.Transaction) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_state(PopCommandType.Retr,
+                    PopSessionState.Transaction, this)).encode(true));
+            return;
+        }
+
+        // Makes sure there are messages at all.
+        if (!this.session.messages) {
+            throw new Error('Session has not loaded messages yet.');
+        }
+
+        // Makes sure there is a argument at all.
+        if (!command.arguments || command.arguments.length != 1) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_params(PopCommandType.Pass, 1, this)).encode(true));
+            return;
+        }
+
+        // Gets the index and subtracts one, and if the message does not exist
+        //  send an error.
+        const index: number = parseInt(command.arguments[0]) - 1;
+        if (index < 0 || index >= this.session.messages.length) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.no_such_message(this)).encode(true));
+            return;
+        }
+
+        // Gets the message content.
+        const message: PopMessage = this.session.messages[index];
+        const content: string = await message.contents();
+
+        // Splits the message content into lines (this is required to filter for dots.);
+        const splitted_content: string[] = content.split(LINE_SEPARATOR);
+
+        // Sends the success response.
+        this.pop_sock.write(new PopResponse(PopResponseType.Success,
+            this.session.language.success.retr(message, this)).encode(true));
+
+        // Sends the lines.
+        for (const line of splitted_content) {
+            PopMultilineResponse.write_line(line, this.pop_sock);
         }
         PopMultilineResponse.write_end(this.pop_sock);
     }
@@ -135,15 +395,10 @@ export class PopServerConnection extends EventEmitter {
             throw new Error('Session has not loaded messages yet.');
         }
 
-        // Sums all the lengths of the messages.
-        let total_size: number = 0;
-        this.session.messages.forEach((message: PopMessage) => {
-            total_size += message.size;
-        });
 
         // Writes the status response.
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
-            [this.session.messages.length.toString(), total_size.toString()]).encode(true));
+            [this.session.messages.length.toString(), this.session.messages_size_sum.toString()]).encode(true));
     }
 
     /**
@@ -153,7 +408,7 @@ export class PopServerConnection extends EventEmitter {
         // Makes sure we're in transaction state.
         if (this.session.state !== PopSessionState.Transaction) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
-                this.session.language.failure.invalid_state(PopCommandType.Stat,
+                this.session.language.failure.invalid_state(PopCommandType.Uidl,
                     PopSessionState.Transaction, this)).encode(true));
             return;
         }
@@ -177,7 +432,7 @@ export class PopServerConnection extends EventEmitter {
             const index: number = parseInt(command.arguments[0]) - 1;
             if (index < 0 || index >= this.session.messages.length) {
                 this.pop_sock.write(new PopResponse(PopResponseType.Failure,
-                    this.session.language.failure.uidl.no_such_message(this)).encode(true));
+                    this.session.language.failure.no_such_message(this)).encode(true));
                 return;
             }
 
@@ -206,7 +461,7 @@ export class PopServerConnection extends EventEmitter {
         if (!command.arguments) {
 
             this.pop_sock.write(new PopResponse(PopResponseType.Success, this.session.language.success.capa(this)).encode(true));
-            
+
             for (const [key, value] of Object.entries(LanguageName)) {
                 PopMultilineResponse.write_line(`${value} ${key}`, this.pop_sock);
             }
@@ -257,17 +512,17 @@ export class PopServerConnection extends EventEmitter {
         }
 
         const user: string = command.arguments[0];
-        const result: boolean | string = await this.server.config.validate_user(user, this);
+        const result: PopUser | null = await this.server.config.get_user(user, this);
 
-        if (result !== true) {
+        if (result === null) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
-                this.session.language.failure.user.rejected(user, result === false ? null : result, this)).encode(true));
+                this.session.language.failure.user.rejected(this)).encode(true));
             return;
         }
 
-        this.session.user = new PopUser(user, null);
+        this.session.user = result;
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
-            this.session.language.success.user.accepted(user, this)).encode(true));
+            this.session.language.success.user.accepted(this)).encode(true));
     }
 
     /**
@@ -294,22 +549,18 @@ export class PopServerConnection extends EventEmitter {
         }
 
         const pass: string = command.arguments[0];
-        const user: string = this.session.user.user as string;
-        const result: boolean | string = await this.server.config.validate_pass(pass, this);
 
-        if (result !== true) {
+        if (pass !== this.session.user.pass) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
-                this.session.language.failure.pass.rejected(user, result === false ? null : result, this)).encode(true));
+                this.session.language.failure.pass.rejected(this)).encode(true));
             return;
         }
 
-        this.session.user.pass = pass;
         this.session.state = PopSessionState.Transaction;
-
         this.session.messages = await this.server.config.receive_messages(this);
 
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
-            this.session.language.success.pass.accepted(user, this)).encode(true));
+            this.session.language.success.pass.accepted(this)).encode(true));
     }
 
     /**
