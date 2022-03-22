@@ -1,0 +1,18 @@
+{
+  "name": "lpop3",
+  "version": "1.0.0",
+  "description": "NodeJS & TypeScript POP3 and POP3S Server.",
+  "main": "main.js",
+  "scripts": {
+    "test": "mocha \"dist/tests/**/*.js\""
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^17.0.22"
+  },
+  "devDependencies": {
+    "@types/mocha": "^9.1.0",
+    "mocha": "^9.2.2"
+  }
+}
