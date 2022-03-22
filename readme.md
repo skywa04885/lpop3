@@ -15,3 +15,30 @@ Also there are a few languages implemented already:
 
 1. Dutch (nl)
 1. English (en)
+
+## Usage
+
+````ts
+// Creates the server.
+const server = new PopServer({
+    get_user: async (user: string, connection: PopServerConnection) => {
+        const account: type = await account.fetch(user);
+        if (account) {
+            connecton.udata.account = account;
+            return new PopUser(user, account.password);
+        }
+
+        return null;
+    },
+    receive_messages: async (connection: PopServerConnection): Promise<PopMessage[]> => {
+        return await emails.fetch(connection.udata.account);
+    },
+    delete_messages: async (connection: PopServerConnection, messages: PopMessage[]): Promise<void> => {
+        await emails.delete(messages.map(message => message.uid));
+    },
+    default_language: get_language(LanguageName.Dutch) as Language,
+});
+
+// Runs the server.
+server.run();
+```

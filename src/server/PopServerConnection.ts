@@ -17,6 +17,7 @@ import { PopServerSession } from "./PopServerSession";
 
 export class PopServerConnection extends EventEmitter {
     protected segmented_reader: PopSegmentedReader;
+    public udata: any;
 
     /**
      * Constructs a new PopServerConnection.
