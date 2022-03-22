@@ -3,6 +3,7 @@ import { Language, LanguageName } from "../languages/Language";
 import { get_language } from "../languages/LanguageProvider";
 import { CAPABILITIES } from "../shared/Constants";
 import { PopCommand, PopCommandType } from "../shared/PopCommand";
+import { PopMessage } from "../shared/PopMessage";
 import { PopMultilineResponse } from "../shared/PopMultilineResponse";
 import { PopResponse, PopResponseType } from "../shared/PopResponse";
 import { PopSegmentedReader } from "../shared/PopSegmentedReader";
@@ -30,8 +31,6 @@ export class PopServerConnection extends EventEmitter {
      * @returns ourselves.
      */
     public begin(): PopServerConnection {
-        this.segmented_reader.on('segment', (line: string) => this._segmented_reader_event_line(line));
-
         this.pop_sock.on('close', (had_error: boolean) => this._event_close(had_error));
         this.pop_sock.on('data', (data: Buffer) => this._event_data(data));
 
@@ -52,15 +51,18 @@ export class PopServerConnection extends EventEmitter {
      * Gets called when there is data available.
      * @param data the data.
      */
-    protected _event_data(data: Buffer): void {
+    protected async _event_data(data: Buffer): Promise<void> {
         this.segmented_reader.write(data.toString('utf-8'));
+        for (const line of this.segmented_reader.lines()) {
+            await this._handle_line(line);
+        }
     }
 
     /**
-     * Gets called when there is a new line.
+     * Handles a single line.
      * @param line the line available for reading.
      */
-    protected _segmented_reader_event_line(line: string): void {
+    protected async _handle_line(line: string): Promise<void> {
         try {
             const command: PopCommand = PopCommand.decode(line);
 
@@ -75,17 +77,23 @@ export class PopServerConnection extends EventEmitter {
                     this._handle_lang(command);
                     break;
                 case PopCommandType.User:
-                    this._handle_user(command);
+                    await this._handle_user(command);
                     break;
                 case PopCommandType.Pass:
-                    this._handle_pass(command);
+                    await this._handle_pass(command);
+                    break;
+                case PopCommandType.Stat:
+                    this._handle_stat();
+                    break;
+                case PopCommandType.Uidl:
+                    this._handle_uidl(command);
                     break;
                 default:
                     this._handle_not_implemented(command);
                     break;
             }
         } catch (e) {
-            this.pop_sock.write(new PopResponse(PopResponseType.Failure, 
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                 this.session.language.failure.invalid_command(this)).encode(true));
             return;
         }
@@ -104,9 +112,90 @@ export class PopServerConnection extends EventEmitter {
      */
     protected _handle_capa(): void {
         this.pop_sock.write(new PopResponse(PopResponseType.Success, this.session.language.success.capa(this)).encode(true));
-        this.pop_sock.write(new PopMultilineResponse(CAPABILITIES.map(function (capability) {
-            return capability.encode();
-        })).encode(true));
+        for (const capability of CAPABILITIES) {
+            PopMultilineResponse.write_line(capability.encode(), this.pop_sock);
+        }
+        PopMultilineResponse.write_end(this.pop_sock);
+    }
+
+    /**
+     * Handles the STAT command.
+     */
+    protected _handle_stat(): void {
+        // Makes sure we're in the transaction state.
+        if (this.session.state !== PopSessionState.Transaction) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_state(PopCommandType.Stat,
+                    PopSessionState.Transaction, this)).encode(true));
+            return;
+        }
+
+        // Makes sure there are messages at all.
+        if (!this.session.messages) {
+            throw new Error('Session has not loaded messages yet.');
+        }
+
+        // Sums all the lengths of the messages.
+        let total_size: number = 0;
+        this.session.messages.forEach((message: PopMessage) => {
+            total_size += message.size;
+        });
+
+        // Writes the status response.
+        this.pop_sock.write(new PopResponse(PopResponseType.Success,
+            [this.session.messages.length.toString(), total_size.toString()]).encode(true));
+    }
+
+    /**
+     * Handles the UIDL command.
+     */
+    protected _handle_uidl(command: PopCommand): void {
+        // Makes sure we're in transaction state.
+        if (this.session.state !== PopSessionState.Transaction) {
+            this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                this.session.language.failure.invalid_state(PopCommandType.Stat,
+                    PopSessionState.Transaction, this)).encode(true));
+            return;
+        }
+
+        // Makes sure there are any messages in the first place.
+        if (!this.session.messages) {
+            throw new Error('Session has not loaded messages yet.');
+        }
+
+        // Checks if we have an argument, if so we need to fetch a specific one.
+        if (command.arguments) {
+            // If there are arguments but not the correct amount, throw an error.
+            if (command.arguments.length !== 1) {
+                this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                    this.session.language.failure.invalid_params(PopCommandType.Uidl, 1, this)).encode(true));
+                return;
+            }
+
+            // Gets the index and subtracts one, and if the message does not exist
+            //  send an error.
+            const index: number = parseInt(command.arguments[0]) - 1;
+            if (index < 0 || index >= this.session.messages.length) {
+                this.pop_sock.write(new PopResponse(PopResponseType.Failure,
+                    this.session.language.failure.uidl.no_such_message(this)).encode(true));
+                return;
+            }
+
+            // Sends the UID for the given message.
+            this.pop_sock.write(new PopResponse(PopResponseType.Success,
+                [(index + 1).toString(), this.session.messages[index].uid_string]).encode(true));
+            return;
+        }
+
+        // Writes the success mesasge.
+        this.pop_sock.write(new PopResponse(PopResponseType.Success,
+            this.session.language.success.uidl.all(this)).encode(true));
+
+        // Writes the list of all message ID's.
+        this.session.messages.forEach((message: PopMessage, index: number) => {
+            PopMultilineResponse.write_line([(index + 1).toString(), message.uid_string], this.pop_sock);
+        });
+        PopMultilineResponse.write_end(this.pop_sock);
     }
 
     /**
@@ -115,12 +204,13 @@ export class PopServerConnection extends EventEmitter {
      */
     protected _handle_lang(command: PopCommand): void {
         if (!command.arguments) {
-            let languages: string[] = [];
-            for (const [key, value] of Object.entries(LanguageName)) {
-                languages.push(`${value} ${key}`)
-            }
+
             this.pop_sock.write(new PopResponse(PopResponseType.Success, this.session.language.success.capa(this)).encode(true));
-            this.pop_sock.write(new PopMultilineResponse(languages).encode(true));
+            
+            for (const [key, value] of Object.entries(LanguageName)) {
+                PopMultilineResponse.write_line(`${value} ${key}`, this.pop_sock);
+            }
+            PopMultilineResponse.write_end(this.pop_sock);
             return;
         }
 
@@ -146,7 +236,7 @@ export class PopServerConnection extends EventEmitter {
      * Handles the user command.
      * @param command the command.
      */
-    protected _handle_user(command: PopCommand): void {
+    protected async _handle_user(command: PopCommand): Promise<void> {
         if (this.session.state !== PopSessionState.Authorization) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                 this.session.language.failure.invalid_state(PopCommandType.User,
@@ -167,7 +257,7 @@ export class PopServerConnection extends EventEmitter {
         }
 
         const user: string = command.arguments[0];
-        const result: boolean | string = this.server.config.validate_user(user, this);
+        const result: boolean | string = await this.server.config.validate_user(user, this);
 
         if (result !== true) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
@@ -184,7 +274,7 @@ export class PopServerConnection extends EventEmitter {
      * Handles the pass command.
      * @param command the command.
      */
-    protected _handle_pass(command: PopCommand): void {
+    protected async _handle_pass(command: PopCommand): Promise<void> {
         if (this.session.state !== PopSessionState.Authorization) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                 this.session.language.failure.invalid_state(PopCommandType.Pass, PopSessionState.Authorization, this)).encode(true));
@@ -205,7 +295,7 @@ export class PopServerConnection extends EventEmitter {
 
         const pass: string = command.arguments[0];
         const user: string = this.session.user.user as string;
-        const result: boolean | string = this.server.config.validate_pass(pass, this);
+        const result: boolean | string = await this.server.config.validate_pass(pass, this);
 
         if (result !== true) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
@@ -215,6 +305,8 @@ export class PopServerConnection extends EventEmitter {
 
         this.session.user.pass = pass;
         this.session.state = PopSessionState.Transaction;
+
+        this.session.messages = await this.server.config.receive_messages(this);
 
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
             this.session.language.success.pass.accepted(user, this)).encode(true));
@@ -226,7 +318,7 @@ export class PopServerConnection extends EventEmitter {
      * @param command the command.
      */
     protected _handle_not_implemented(command: PopCommand): void {
-        this.pop_sock.write(new PopResponse(PopResponseType.Failure, 
+        this.pop_sock.write(new PopResponse(PopResponseType.Failure,
             this.session.language.failure.command_not_implemented(command.type, this)).encode(true));
     }
 }

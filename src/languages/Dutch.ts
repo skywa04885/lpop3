@@ -22,7 +22,7 @@ export const Dutch = {
             return `${command_type} opdracht mag alleen worden uitgevoerd in de ${required_state} staat.`;
         },
         invalid_params: (command_type: PopCommandType, params: number, connection: PopServerConnection) => {
-            return `${command_type} vereist ${params > 1 ? 'een' : 'meerdere'} ${params > 1 ? 'argument' : 'argumenten'}.`;
+            return `${command_type} vereist ${params > 1 ? 'een' : 'meerdere'} ${params > 1 ? 'argument' : 'argumenten'}, niet meer, niet minder.`;
         },
         execute_command_first: (command_type: PopCommandType, execute_first_command_type: PopCommandType, connection: PopServerConnection) => {
             return `opdracht ${execute_first_command_type} moet uitgevoerd worden voor ${command_type}.`;
@@ -37,6 +37,11 @@ export const Dutch = {
         },
         invalid_command: (conncetion: PopServerConnection) => {
             return 'Ongeldige opdracht.';
+        },
+        uidl: {
+            no_such_message: (connection: PopServerConnection) => {
+                return `bericht bestaat niet, enkel ${connection.session.messages?.length} berichten in de maildrop.`;
+            },
         },
     },
     success: {
@@ -58,6 +63,11 @@ export const Dutch = {
         },
         quit: (connection: PopServerConnection) => {
             return `Luke-${connection.pop_sock.secure ? 'POP3S' : 'POP3'} meld zich af.`;
+        },
+        uidl: {
+            all: (connection: PopServerConnection) => {
+                return 'de lijst van berichten volgt.';
+            },
         },
         language: {
             changing: (lang: string, connection: PopServerConnection) => {

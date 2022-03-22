@@ -1,33 +1,37 @@
-import { LINE_SEPARATOR } from "./Constants";
+import { LINE_SEPARATOR, SEGMENT_SEPARATOR } from "./Constants";
+import { PopSocket } from "./PopSocket";
 
 export class PopMultilineResponse {
-    public constructor(public readonly lines: string[]) { }
+    /**
+     * Writes an line part of a multiline response.
+     * @param line the line to write.
+     * @param pop_sock the socket to write to.
+     * @returns if everything is written directly.
+     */
+    public static write_line(line: string | string[], pop_sock: PopSocket): boolean {
+        let final_line: string;
+
+        if(typeof (line) === 'string') {
+            final_line = line.trim();
+        } else {
+            final_line = line.map(segment => segment.trim()).join(SEGMENT_SEPARATOR);
+        }
+
+        if (final_line === '.') {
+            final_line += '.';
+        }
+
+        final_line += LINE_SEPARATOR;
+
+        return pop_sock.write(final_line);
+    }
 
     /**
-     * Encodes a multiline response.
-     * @param add_newline if we should add a newline at the end.
-     * @returns the encoded multiline response.
+     * Writes the end of a multiline response.
+     * @param pop_sock the socket to write to.
+     * @returns if it was written completely.
      */
-    public encode(add_newline: boolean = true): string {
-        let arr: string[] = [];
-
-        for (const line of this.lines) {
-            if (line == '.') { // We need to escape the dots.
-                arr.push('..');
-                continue;
-            }
-
-            arr.push(line.trim());
-        }
-
-        arr.push('.');
-
-        let result_string: string = arr.join(LINE_SEPARATOR);
-
-        if (add_newline) {
-            result_string += LINE_SEPARATOR;
-        }
-
-        return result_string;
+    public static write_end(pop_sock: PopSocket) {
+        return pop_sock.write(`.${LINE_SEPARATOR}`);   
     }
 }

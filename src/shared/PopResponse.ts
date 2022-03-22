@@ -25,7 +25,7 @@ export class PopResponse {
      * @param type the type of response.
      * @param message the message.
      */
-    public constructor(public readonly type: PopResponseType, public readonly message: string) { }
+    public constructor(public readonly type: PopResponseType, public readonly message: string | string[]) { }
 
     /**
      * Encodes the current response instance.
@@ -33,7 +33,19 @@ export class PopResponse {
      * @returns the encoded response.
      */
     public encode(add_newline: boolean = true) {
-        let result_string: string = [ this.type, this.message.trim() ].join(SEGMENT_SEPARATOR);
+        let arr: string[] = [];
+
+        arr.push(this.type);
+
+        if (typeof(this.message) === 'string') {
+            arr.push(this.message.trim());
+        } else {
+            for (const m of this.message) {
+                arr.push(m.trim());
+            }
+        }
+
+        let result_string: string = arr.join(SEGMENT_SEPARATOR);
 
         if (add_newline) {
             result_string += LINE_SEPARATOR;

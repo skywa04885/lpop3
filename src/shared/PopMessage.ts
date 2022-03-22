@@ -15,6 +15,17 @@ export class PopMessage {
     }
 
     /**
+     * Gets the UID as a string, even if it's a number.
+     */
+    public get uid_string(): string {
+        if (typeof (this.uid) === 'string') {
+            return this.uid;
+        }
+        
+        return this.uid.toString();
+    }
+
+    /**
      * Gets the contents of the message.
      * @returns the contents.
      */

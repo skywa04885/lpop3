@@ -23,7 +23,10 @@ export interface Language {
         language: {
             invalid: (lang: string, connection: PopServerConnection) => string,
         },
-        invalid_command: (conncetion: PopServerConnection) => string,
+        uidl: {
+            no_such_message: (connection: PopServerConnection) => string,
+        },
+        invalid_command: (connection: PopServerConnection) => string,
     },
     success: {
         greeting: (connection: PopServerConnection) => string,
@@ -35,6 +38,9 @@ export interface Language {
             accepted: (user: string, connection: PopServerConnection) => string,
         },
         quit: (connetion: PopServerConnection) => string,
+        uidl: {
+            all: (connection: PopServerConnection) => string,
+        },
         language: {
             changing: (lang: string, connection: PopServerConnection) => string,
         }

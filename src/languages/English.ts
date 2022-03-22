@@ -22,7 +22,7 @@ export const English = {
             return `${command_type} command may only be executed in the ${required_state} state.`;
         },
         invalid_params: (command_type: PopCommandType, params: number, connection: PopServerConnection) => {
-            return `${command_type} requires ${params> 1 ? 'one' : 'multiple'} ${params > 1 ? 'parameters': 'parameter'}.`;
+            return `${command_type} requires ${params> 1 ? 'one' : 'multiple'} ${params > 1 ? 'parameters': 'parameter'}, not more not less.`;
         },
         execute_command_first: (command_type: PopCommandType, execute_first_command_type: PopCommandType, connection: PopServerConnection) => {
             return `command ${execute_first_command_type} must be executed before ${command_type}.`;
@@ -37,6 +37,11 @@ export const English = {
         },
         invalid_command: (conncetion: PopServerConnection) => {
             return 'invalid command.';
+        },
+        uidl: {
+            no_such_message: (connection: PopServerConnection) => {
+                return `no such message, only ${connection.session.messages?.length} messages in maildrop.`;
+            },   
         },
     },
     success: {
@@ -58,6 +63,11 @@ export const English = {
         },
         quit: (connection: PopServerConnection) => {
             return `Luke-${connection.pop_sock.secure ? 'POP3S' : 'POP3'} signing off.`;
+        },
+        uidl: {
+            all: (connection: PopServerConnection) => {
+                return 'mailbox listing follows.';
+            },
         },
         language: {
             changing: (lang: string, connection: PopServerConnection) => {
