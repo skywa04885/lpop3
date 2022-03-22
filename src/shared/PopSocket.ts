@@ -29,7 +29,34 @@ export class PopSocket extends EventEmitter {
             socket.on('end', () => this._event_end());
             socket.on('error', (err: Error) => this._event_error(err));
             socket.on('timeout', () => this._event_timeout());
+            socket.on('connect', () => this._event_connect());
         }
+    }
+
+    /**
+     * COnnects to the given host and port.
+     * @param host the host.
+     * @param port the port.
+     * @param secure if it is secure.
+     * @returns The PopSocket.
+     */
+    public static connect(host: string, port: number, secure: boolean): Promise<PopSocket> {
+        return new Promise<PopSocket>((resolve, reject) => {
+            let socket: tls.TLSSocket | net.Socket;
+        
+            if (secure) {
+                socket = tls.connect({
+                    host, port
+                });
+            } else {
+                socket = net.connect({
+                    host, port
+                });
+            }
+
+            socket.once('connect', () => resolve(new PopSocket(secure, socket)));
+            socket.once('error', (err: Error) => reject(err));
+        });
     }
 
     /**
@@ -37,6 +64,20 @@ export class PopSocket extends EventEmitter {
      */
     public close(): void {
         this.socket.end();
+    }
+
+    /**
+     * Pauses.
+     */
+    public pause(): void {
+        this.socket.pause();
+    }
+
+    /**
+     * Resumes.
+     */
+    public resume(): void {
+        this.socket.resume();
     }
 
     /**
@@ -139,5 +180,12 @@ export class PopSocket extends EventEmitter {
         this.socket.end();
         
         this.emit('timeout');
+    }
+
+    /**
+     * Gets called when the socket is connected.
+     */
+    protected _event_connect(): void {
+        this.emit('connect');
     }
 }

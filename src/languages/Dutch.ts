@@ -53,6 +53,9 @@ export const Dutch = {
         in_use: (connection: PopServerConnection) => {
             return 'heeft u nog een sessie open staan??';
         },
+        message_deleted: (index: number, connection: PopServerConnection) => {
+            return `bericht ${index} is verwijderd.`;
+        },
     },
     success: {
         retr: (message: PopMessage, connection: PopServerConnection) => {
@@ -97,10 +100,18 @@ export const Dutch = {
             changing: (lang: string, connection: PopServerConnection) => {
                 return `taal wordt veranderd naar '${lang}'.`;
             },
+            list: (connection: PopServerConnection) => {
+                return 'lijst van talen volgt.';
+            },
         },
         apop: {
             logged_in: (connection: PopServerConnection) => {
                 return `maildrop heeft ${connection.session.messages?.length} berichten (${connection.session.messages_size_sum} bytes)`;
+            },
+        },
+        top: {
+            base: (connection: PopServerConnection) => {
+                return `top volgt.`;
             },
         },
     },

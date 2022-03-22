@@ -9,6 +9,7 @@ export const DEFAULT_POP_SERVER_STATE_TYPE: PopSessionState = PopSessionState.Au
 
 export class PopServerSession extends PopSession {
     public user: PopUser | null;
+    public invalid_command_count: number;
     public messages: PopMessage[] | null;
     public banner: PopBanner;
 
@@ -16,6 +17,7 @@ export class PopServerSession extends PopSession {
         super(DEFAULT_POP_SERVER_STATE_TYPE);
         this.user = null;
         this.messages = null;
+        this.invalid_command_count = 0;
         this.banner = new PopBanner();
     }
 

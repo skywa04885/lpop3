@@ -28,6 +28,7 @@ export interface Language {
             already_deleted: (index: number, connection: PopServerConnection) => string,
         },
         no_such_message: (connection: PopServerConnection) => string,
+        message_deleted: (index: number, connection: PopServerConnection) => string,
         invalid_command: (connection: PopServerConnection) => string,
         permission_denied: (connection: PopServerConnection) => string,
         in_use: (connection: PopServerConnection) => string,
@@ -53,9 +54,13 @@ export interface Language {
         },
         language: {
             changing: (lang: string, connection: PopServerConnection) => string,
+            list: (connection: PopServerConnection) => string,
         },
         apop: {
             logged_in: (connection: PopServerConnection) => string,
+        },
+        top: {
+            base: (connection: PopServerConnection) => string,
         },
     },
 }

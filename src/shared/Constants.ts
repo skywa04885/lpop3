@@ -11,3 +11,4 @@ export const CAPABILITIES: PopCapability[] = [
     new PopCapability(PopCapabilityType.Expire, 'NEVER'),
     new PopCapability(PopCapabilityType.Lang)
 ];
+export const MAX_INVALID_COMMANDS: number = 10;

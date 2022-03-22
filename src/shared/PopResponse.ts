@@ -44,7 +44,7 @@ export class PopResponse {
         }
 
         if (this.message !== null) {
-            if (typeof(this.message) === 'string') {
+            if (typeof (this.message) === 'string') {
                 arr.push(this.message.trim());
             } else {
                 for (const m of this.message) {
@@ -76,13 +76,23 @@ export class PopResponse {
         }
 
         const raw_type: string = raw.substring(0, split_index).trim().toUpperCase();
-        const raw_message: string = raw.substring(split_index + 1).trim();
-        
-        if (!Object.values(PopResponseType).includes(raw_type as PopResponseType))
-        {
+        let raw_message: string = raw.substring(split_index + 1).trim();
+        let raw_ext_status_code: string | null = null;
+
+        if (raw_message.startsWith('[')) {
+            const closing_bracket: number = raw_message.indexOf(']')
+            raw_ext_status_code = raw_message.substring(1, closing_bracket - 1).toUpperCase();
+            raw_message = raw_message.substring(0, closing_bracket);
+        }
+
+        if (!Object.values(PopResponseType).includes(raw_type as PopResponseType)) {
             throw new Error('Invalid response type.');
         }
 
-        return new PopResponse(raw_type as PopResponseType, raw_message);
+        if (raw_ext_status_code !== null && !Object.values(PopExtRespCode).includes(raw_ext_status_code as PopExtRespCode)) {
+            throw new Error('Invalid extension status code.');
+        }
+
+        return new PopResponse(raw_type as PopResponseType, raw_message, raw_ext_status_code as PopExtRespCode);
     }
 }

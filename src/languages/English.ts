@@ -53,6 +53,9 @@ export const English = {
         in_use: (connection: PopServerConnection) => {
             return 'do you have another POP session running?';
         },
+        message_deleted: (index: number, connection: PopServerConnection) => {
+            return `message ${index} has been deleted.`;
+        },
     },
     success: {
         retr: (message: PopMessage, connection: PopServerConnection) => {
@@ -97,10 +100,18 @@ export const English = {
             changing: (lang: string, connection: PopServerConnection) => {
                 return `changing language to '${lang}'.`;
             },
+            list: (connection: PopServerConnection) => {
+                return 'language listing follows.';
+            },
         },
         apop: {
             logged_in: (connection: PopServerConnection) => {
                 return `maildrop has ${connection.session.messages?.length} messages (${connection.session.messages_size_sum} octets)`;
+            },
+        },
+        top: {
+            base: (connection: PopServerConnection) => {
+                return `top follows.`;
             },
         },
     },

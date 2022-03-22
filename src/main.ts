@@ -1,9 +1,12 @@
+import { PopClient } from "./client/PopClient";
+
 import net from 'net';
 import tls from 'tls';
 import { DatabasePopMessage, DATABASE_POP_MESSAGE } from './example/DatabasePopMessage';
 import { English } from './languages/English';
 import { Language, LanguageName } from './languages/Language';
 import { get_language } from './languages/LanguageProvider';
+
 
 import { PopServer } from "./server/PopServer";
 import { PopServerConnection } from './server/PopServerConnection';
@@ -25,11 +28,14 @@ let database: DatabasePopMessage[] = [
 
 const server = new PopServer({
     get_user: async (user: string, u: any) => {
-        if (user === 'luke.rieff@adsasdasdadadsasdadasda.com') {
-            return new PopUser('luke.rieff@adsasdasdadadsasdadasda.com', 'hello');
+        if (user === 'luke') {
+            return new PopUser('luke', 'hello');
         }
 
         return null;
+    },
+    compare_password: (raw: string, hash: string) => {
+        return raw === hash;
     },
     is_in_use: async (connection: PopServerConnection) => {
         return false;
