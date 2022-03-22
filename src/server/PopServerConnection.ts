@@ -3,6 +3,7 @@ import { Language, LanguageName } from "../languages/Language";
 import { get_language } from "../languages/LanguageProvider";
 import { ApopDigest } from "../shared/ApopDigest";
 import { CAPABILITIES, LINE_SEPARATOR } from "../shared/Constants";
+import { PopAuthRespCode } from "../shared/PopAuthRespCode";
 import { PopBanner } from "../shared/PopBanner";
 import { PopCommand, PopCommandType } from "../shared/PopCommand";
 import { PopMessage, PopMessageFlag } from "../shared/PopMessage";
@@ -553,7 +554,7 @@ export class PopServerConnection extends EventEmitter {
 
         if (pass !== this.session.user.pass) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
-                this.session.language.failure.pass.rejected(this)).encode(true));
+                [PopAuthRespCode.Auth, this.session.language.failure.pass.rejected(this)]).encode(true));
             return;
         }
 
@@ -561,7 +562,7 @@ export class PopServerConnection extends EventEmitter {
         this.session.messages = await this.server.config.receive_messages(this);
 
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
-            this.session.language.success.pass.accepted(this)).encode(true));
+            [PopAuthRespCode.Auth, this.session.language.success.pass.accepted(this)]).encode(true));
     }
 
     /**
