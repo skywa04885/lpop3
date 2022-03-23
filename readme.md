@@ -1,3 +1,6 @@
+
+[![npm version](https://badge.fury.io/js/lpop3.svg)](https://badge.fury.io/js/lpop3)
+
 # Luke's POP3 & POP3S Server for NodeJS
 
 ## For people who had issues.
