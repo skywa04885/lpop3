@@ -1,6 +1,6 @@
 {
   "name": "lpop3",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "NodeJS & TypeScript POP3 and POP3S Server.",
   "main": "main.js",
   "scripts": {
@@ -14,5 +14,6 @@
   "devDependencies": {
     "@types/mocha": "^9.1.0",
     "mocha": "^9.2.2"
-  }
+  },
+  "repository": {"https://github.com/skywa04885/lpop3"}
 }
