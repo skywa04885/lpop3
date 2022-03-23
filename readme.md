@@ -1,5 +1,9 @@
 # Luke's POP3 & POP3S Server for NodeJS
 
+## For people who had issues.
+
+I'm sorry I was not aware my package could not be imported properly.
+
 ## Features
 
 In this case many POP3 / POP3S features have been implemented, including:
@@ -19,21 +23,14 @@ Also there are a few languages implemented already:
 ## Usage
 
 ````ts
-import { PopClient } from "./client/PopClient";
-
-import net from 'net';
-import tls from 'tls';
-import { DatabasePopMessage, DATABASE_POP_MESSAGE } from './example/DatabasePopMessage';
-import { English } from './languages/English';
-import { Language, LanguageName } from './languages/Language';
-import { get_language } from './languages/LanguageProvider';
-
-
-import { PopServer } from "./server/PopServer";
-import { PopServerConnection } from './server/PopServerConnection';
-import { PopMessage } from './shared/PopMessage';
-import { PopSocket } from './shared/PopSocket';
-import { PopUser } from './shared/PopUser';
+import { PopServer } from 'lpop3/dist/server/PopServer'
+import { PopUser } from 'lpop3/dist/shared/PopUser';
+import { DatabasePopMessage, DATABASE_POP_MESSAGE } from 'lpop3/dist/example/DatabasePopMessage'
+import { PopServerConnection } from 'lpop3/dist/server/PopServerConnection';
+import { PopMessage } from 'lpop3/dist/shared/PopMessage';
+import { get_language } from 'lpop3/dist/languages/LanguageProvider';
+import { Language, LanguageName } from 'lpop3/dist/languages/Language';
+import { PopSocket } from 'lpop3/dist/shared/PopSocket';
 
 let database: DatabasePopMessage[] = [
     new DatabasePopMessage(0, DATABASE_POP_MESSAGE.length, DATABASE_POP_MESSAGE),

@@ -60,15 +60,6 @@ describe('PopResponse', function () {
             assert.equal(response.message, raw_message);
         });
 
-        it('Errors at a response missing separator', function () {
-            const raw_type: PopResponseType = PopResponseType.Success;
-            const raw_response: string = `${raw_type}`;
-
-            assert.throws(function () {
-                PopResponse.decode(raw_response);
-            }, Error, 'Raw string does not contain any separator.');
-        });
-
         it('Errors at invalid type', function () {
             const raw_type: string = '+KAAS';
             const raw_message: string = 'This is a simple success';

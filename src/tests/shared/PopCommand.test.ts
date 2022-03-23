@@ -61,15 +61,6 @@ describe('PopCommand', function () {
             assert.equal(command.args, raw_args);
         });
 
-        it('Errors at a response missing separator', function () {
-            const raw_type: PopCommandType = PopCommandType.Retr;
-            const raw_command: string = `${raw_type}`;
-
-            assert.throws(function () {
-                PopCommand.decode(raw_command);
-            }, Error, 'Command syntax error.');
-        });
-
         it('Errors at invalid type', function () {
             const raw_type: string = 'ASDG';
             const raw_args: string = 'do some shit';
