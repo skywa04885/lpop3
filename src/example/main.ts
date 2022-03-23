@@ -1,39 +1,16 @@
-# Luke's POP3 & POP3S Server for NodeJS
-
-## Features
-
-In this case many POP3 / POP3S features have been implemented, including:
-
-1. UIDL
-1. TOP
-1. USER
-1. PASS
-1. LANG
-1. APOP
-
-Also there are a few languages implemented already:
-
-1. Dutch (nl)
-1. English (en)
-
-## Usage
-
-````ts
-import { PopClient } from "./client/PopClient";
-
 import net from 'net';
 import tls from 'tls';
-import { DatabasePopMessage, DATABASE_POP_MESSAGE } from './example/DatabasePopMessage';
-import { English } from './languages/English';
-import { Language, LanguageName } from './languages/Language';
-import { get_language } from './languages/LanguageProvider';
+import { DatabasePopMessage, DATABASE_POP_MESSAGE } from './DatabasePopMessage';
+import { English } from '../languages/English';
+import { Language, LanguageName } from '../languages/Language';
+import { get_language } from '../languages/LanguageProvider';
 
 
-import { PopServer } from "./server/PopServer";
-import { PopServerConnection } from './server/PopServerConnection';
-import { PopMessage } from './shared/PopMessage';
-import { PopSocket } from './shared/PopSocket';
-import { PopUser } from './shared/PopUser';
+import { PopServer } from "../server/PopServer";
+import { PopServerConnection } from '../server/PopServerConnection';
+import { PopMessage } from '../shared/PopMessage';
+import { PopSocket } from '../shared/PopSocket';
+import { PopUser } from '../shared/PopUser';
 
 let database: DatabasePopMessage[] = [
     new DatabasePopMessage(0, DATABASE_POP_MESSAGE.length, DATABASE_POP_MESSAGE),
@@ -93,4 +70,3 @@ server.on('client_disconnected', function (secure: boolean, socket: PopSocket) {
 });
 
 server.run();
-```

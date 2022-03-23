@@ -1,6 +1,6 @@
 {
   "name": "lpop3",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NodeJS & TypeScript POP3 and POP3S Server.",
   "main": "main.js",
   "scripts": {
