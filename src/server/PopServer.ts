@@ -1,6 +1,6 @@
 import net from 'net';
 import { EventEmitter } from 'stream';
-import tls from 'tls';
+import tls, { TLSSocketOptions } from 'tls';
 import { PopSocket } from '../shared/PopSocket';
 import { PopServerConfig } from './PopServerConfig';
 import { PopServerConnection } from './PopServerConnection';
@@ -18,9 +18,10 @@ export class PopServer extends EventEmitter {
      * @param secure_port the secure port to listen on.
      * @param backlog the backlog.
      * @param timeout the timeout of sockets in ms.
+     * @param tls_options the tls socket options.
      */
     public constructor(public readonly config: PopServerConfig, public readonly hostname: string = '0.0.0.0', public readonly plain_port: number = 110,
-        public readonly secure_port: number = 995, public readonly backlog: number = 500, public readonly timeout: number = 1000 * 60) {
+        public readonly secure_port: number = 995, public readonly backlog: number = 500, public readonly timeout: number = 1000 * 60, public readonly tls_options: TLSSocketOptions = {}) {
         super();
 
         this.plain_server = null;
@@ -43,7 +44,7 @@ export class PopServer extends EventEmitter {
 
         // Secure
 
-        this.secure_server = tls.createServer();
+        this.secure_server = tls.createServer(this.tls_options);
 
         this.secure_server.on('secureConnection', (socket: tls.TLSSocket) => this._event_connection(true, socket));
         this.secure_server.on('tlsClientError', (err: Error, _: tls.TLSSocket) => this._event_error(true, err));

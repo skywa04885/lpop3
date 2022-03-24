@@ -11,6 +11,8 @@ import { PopServerConnection } from '../server/PopServerConnection';
 import { PopMessage } from '../shared/PopMessage';
 import { PopSocket } from '../shared/PopSocket';
 import { PopUser } from '../shared/PopUser';
+import { PopServerConfig } from '../server/PopServerConfig';
+import { Dutch } from '../languages/Dutch';
 
 let database: DatabasePopMessage[] = [
     new DatabasePopMessage(0, DATABASE_POP_MESSAGE.length, DATABASE_POP_MESSAGE),
@@ -24,30 +26,35 @@ let database: DatabasePopMessage[] = [
     new DatabasePopMessage(8, DATABASE_POP_MESSAGE.length, DATABASE_POP_MESSAGE),
 ];
 
-const server = new PopServer({
-    get_user: async (user: string, u: any) => {
-        if (user === 'luke') {
-            return new PopUser('luke', 'hello');
+async function get_user(user: string, _: PopServerConnection): Promise<PopUser | null> {
+    return new PopUser(user, 'asd');
+}
+
+async function is_in_use(_: PopServerConnection): Promise<boolean> {
+    return false;
+}
+
+function compare_password(password: string, hash:string): boolean {
+    return password === hash;
+}
+
+async function receive_messages(_: PopServerConnection): Promise<PopMessage[]> {
+    return database;
+}
+
+async function delete_messages(_: PopServerConnection, messages: PopMessage[]): Promise<void> {
+    messages.forEach((message: PopMessage): void => {
+        const index: number = database.findIndex(a => a.uid === message.uid);
+        if (!index) {
+            return;
         }
 
-        return null;
-    },
-    compare_password: (raw: string, hash: string) => {
-        return raw === hash;
-    },
-    is_in_use: async (connection: PopServerConnection) => {
-        return false;
-    },
-    receive_messages: async (connection: PopServerConnection): Promise<PopMessage[]> => {
-        return database;
-    },
-    delete_messages: async (connection: PopServerConnection, messages: PopMessage[]): Promise<void> => {
-        messages.forEach(message => {
-            database.splice(database.findIndex(a => (a.uid === message.uid)), 1);
-        });
-    },
-    default_language: get_language(LanguageName.Dutch) as Language,
-});
+        database.splice(index, 1);
+    });
+}
+
+const config: PopServerConfig = new PopServerConfig(get_user, is_in_use, compare_password, receive_messages, delete_messages, Dutch);
+const server: PopServer = new PopServer(config);
 
 server.on('server_error', function (secure: boolean, err: Error | undefined) {
     console.info(`${secure ? 'TLS' : 'Plain'} server had an error: `, err);

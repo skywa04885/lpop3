@@ -14,8 +14,10 @@ import { PopUser } from "../shared/PopUser";
 import { PopServer } from "./PopServer";
 import { PopServerSession } from "./PopServerSession";
 import { PopExtRespCode } from '../shared/PopExtRespCode';
+import { PopServerStream } from "./PopServerStream";
 
 export class PopServerConnection extends EventEmitter {
+    protected stream: PopServerStream;
     public udata: any;
 
     /**
@@ -27,6 +29,10 @@ export class PopServerConnection extends EventEmitter {
 
         // Registers the event listeners.
         this.pop_sock.on('close', (had_error: boolean) => this._event_close(had_error));
+
+        // Creates the stream.
+        this.stream = new PopServerStream({}, (data: string) => this._on_command(data));
+        this.pop_sock.socket.pipe(this.stream);
     }
 
     /**
@@ -37,18 +43,6 @@ export class PopServerConnection extends EventEmitter {
         // Sends the greeting.
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
             [this.session.language.success.greeting(this), this.session.banner.encode()]).encode(true));
-
-        // Adds the data event listener.
-        let segmented_reader: PopSegmentedReader = new PopSegmentedReader();
-        segmented_reader.on('segment', async (segment: string) => {
-            this._handle_line(segment);
-        });
-
-        this.pop_sock.on('data', (chunk: Buffer) => {
-            this.pop_sock.pause();
-            segmented_reader.write(chunk.toString('utf-8'));
-            this.pop_sock.resume();
-        });
     }
 
     /**
@@ -59,12 +53,12 @@ export class PopServerConnection extends EventEmitter {
     }
 
     /**
-     * Handles a single line.
-     * @param line the line available for reading.
+     * Handles a single pop command.
+     * @param data the command date.
      */
-    protected async _handle_line(line: string): Promise<void> {
+    protected async _on_command(data: string): Promise<void> {
         try {
-            const command: PopCommand = PopCommand.decode(line);
+            const command: PopCommand = PopCommand.decode(data);
             switch (command.type) {
                 case PopCommandType.Capa:
                     this._handle_capa();

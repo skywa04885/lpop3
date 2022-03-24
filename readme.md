@@ -3,39 +3,30 @@
 
 # Luke's POP3 & POP3S Server for NodeJS
 
+Please go to the documentation bellow for further explainations!
+
+# Quick Links
+
 Documentation: [skywa04885.github.io/lpop3/](https://skywa04885.github.io/lpop3/)
 
-## For people who had issues.
-
-I'm sorry I was not aware my package could not be imported properly.
-
-## Features
-
-In this case many POP3 / POP3S features have been implemented, including:
-
-1. UIDL
-1. TOP
-1. USER
-1. PASS
-1. LANG
-1. APOP
-
-Also there are a few languages implemented already:
-
-1. Dutch (nl)
-1. English (en)
-
-## Usage
+# Usage
 
 ````ts
-import { PopServer } from 'lpop3/dist/server/PopServer'
-import { PopUser } from 'lpop3/dist/shared/PopUser';
-import { DatabasePopMessage, DATABASE_POP_MESSAGE } from 'lpop3/dist/example/DatabasePopMessage'
-import { PopServerConnection } from 'lpop3/dist/server/PopServerConnection';
-import { PopMessage } from 'lpop3/dist/shared/PopMessage';
-import { get_language } from 'lpop3/dist/languages/LanguageProvider';
-import { Language, LanguageName } from 'lpop3/dist/languages/Language';
-import { PopSocket } from 'lpop3/dist/shared/PopSocket';
+import net from 'net';
+import tls from 'tls';
+import { DatabasePopMessage, DATABASE_POP_MESSAGE } from 'lpop3/example/DatabasePopMessage';
+import { English } from 'lpop3/languages/English';
+import { Language, LanguageName } from 'lpop3/languages/Language';
+import { get_language } from 'lpop3/languages/LanguageProvider';
+
+
+import { PopServer } from "lpop3/server/PopServer";
+import { PopServerConnection } from 'lpop3/server/PopServerConnection';
+import { PopMessage } from 'lpop3/shared/PopMessage';
+import { PopSocket } from 'lpop3/shared/PopSocket';
+import { PopUser } from 'lpop3/shared/PopUser';
+import { PopServerConfig } from 'lpop3/server/PopServerConfig';
+import { Dutch } from 'lpop3/languages/Dutch';
 
 let database: DatabasePopMessage[] = [
     new DatabasePopMessage(0, DATABASE_POP_MESSAGE.length, DATABASE_POP_MESSAGE),
@@ -49,30 +40,35 @@ let database: DatabasePopMessage[] = [
     new DatabasePopMessage(8, DATABASE_POP_MESSAGE.length, DATABASE_POP_MESSAGE),
 ];
 
-const server = new PopServer({
-    get_user: async (user: string, u: any) => {
-        if (user === 'luke') {
-            return new PopUser('luke', 'hello');
+async function get_user(user: string, _: PopServerConnection): Promise<PopUser | null> {
+    return new PopUser(user, 'asd');
+}
+
+async function is_in_use(_: PopServerConnection): Promise<boolean> {
+    return false;
+}
+
+function compare_password(password: string, hash:string): boolean {
+    return password === hash;
+}
+
+async function receive_messages(_: PopServerConnection): Promise<PopMessage[]> {
+    return database;
+}
+
+async function delete_messages(_: PopServerConnection, messages: PopMessage[]): Promise<void> {
+    messages.forEach((message: PopMessage): void => {
+        const index: number = database.findIndex(a => a.uid === message.uid);
+        if (!index) {
+            return;
         }
 
-        return null;
-    },
-    compare_password: (raw: string, hash: string) => {
-        return raw === hash;
-    },
-    is_in_use: async (connection: PopServerConnection) => {
-        return false;
-    },
-    receive_messages: async (connection: PopServerConnection): Promise<PopMessage[]> => {
-        return database;
-    },
-    delete_messages: async (connection: PopServerConnection, messages: PopMessage[]): Promise<void> => {
-        messages.forEach(message => {
-            database.splice(database.findIndex(a => (a.uid === message.uid)), 1);
-        });
-    },
-    default_language: get_language(LanguageName.Dutch) as Language,
-});
+        database.splice(index, 1);
+    });
+}
+
+const config: PopServerConfig = new PopServerConfig(get_user, is_in_use, compare_password, receive_messages, delete_messages, Dutch);
+const server: PopServer = new PopServer(config);
 
 server.on('server_error', function (secure: boolean, err: Error | undefined) {
     console.info(`${secure ? 'TLS' : 'Plain'} server had an error: `, err);
