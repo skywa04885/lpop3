@@ -7,7 +7,6 @@ import { PopCommand, PopCommandType } from "../shared/PopCommand";
 import { PopMessage, PopMessageFlag } from "../shared/PopMessage";
 import { PopMultilineResponse } from "../shared/PopMultilineResponse";
 import { PopResponse, PopResponseType } from "../shared/PopResponse";
-import { PopSegmentedReader } from "../shared/PopSegmentedReader";
 import { PopSessionState } from "../shared/PopSession";
 import { PopSocket } from "../shared/PopSocket";
 import { PopUser } from "../shared/PopUser";

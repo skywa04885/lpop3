@@ -9,6 +9,7 @@ export const CAPABILITIES: PopCapability[] = [
     new PopCapability(PopCapabilityType.Uidl),
     new PopCapability(PopCapabilityType.Utf8),
     new PopCapability(PopCapabilityType.Expire, 'NEVER'),
-    new PopCapability(PopCapabilityType.Lang)
+    new PopCapability(PopCapabilityType.Lang),
+    new PopCapability(PopCapabilityType.Pipelining)
 ];
 export const MAX_INVALID_COMMANDS: number = 10;
