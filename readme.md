@@ -3,6 +3,8 @@
 
 # Luke's POP3 & POP3S Server for NodeJS
 
+Documentation: [skywa04885.github.io/lpop3/](https://skywa04885.github.io/lpop3/)
+
 ## For people who had issues.
 
 I'm sorry I was not aware my package could not be imported properly.
