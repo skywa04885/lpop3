@@ -1,37 +1,7 @@
-## Welcome to GitHub Pages
+# Welcome to the LPOP 3 documentation.
 
-You can use the [editor on GitHub](https://github.com/skywa04885/lpop3/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+## What is POP3?
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+POP3 also known as the Post Office Protocol, is a protocol to retreive messages from a mail server, in this case there are no multiple mailboxes as in IMAP, but a single one, since at the time a account was considered a mailbox. This protocol is probably outdated, but can still be used with most of the E-Mail clients, and works just fine for most use cases. The protocol itself is just a text-based protocol (listening on 995 for TLS and 110 for Plain text) and consists of commands and responses, each command followed by a response. In this protocol there are two states in which a session can be, the *AUTHENTICATION* state and the *TRANSACTION* state. In default when you connect you're entering the *AUTHENTICATION* state and you can only execute a small set of commands, none of which are e-mail related, however once you're authenticated you enter the *TRANSACTION* state and you can interact with the emails, and delete / read them.
 
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/skywa04885/lpop3/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+## 
