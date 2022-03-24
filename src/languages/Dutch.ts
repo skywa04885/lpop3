@@ -45,7 +45,7 @@ export const Dutch = {
             },
         },
         no_such_message: (connection: PopServerConnection) => {
-            return `bericht bestaat niet, enkel ${connection.session.messages?.length} berichten in de maildrop.`;
+            return `bericht bestaat niet, enkel ${connection.session.available_message_count} berichten in de maildrop.`;
         },
         permission_denied: (connection: PopServerConnection) => {
             return `toegang geweigerd.`;
@@ -86,10 +86,10 @@ export const Dutch = {
             },
         },
         list: (connection: PopServerConnection) => {
-            return `${connection.session.messages?.length} (${connection.session.messages_size_sum} bytes)`;
+            return `${connection.session.available_message_count} (${connection.session.available_messages_size_sum} bytes)`;
         },
         rset: (connection: PopServerConnection) => {
-            return `maildrop heeft ${connection.session.messages?.length} berichten (${connection.session.messages_size_sum} bytes).`;
+            return `maildrop heeft ${connection.session.available_message_count} berichten (${connection.session.available_messages_size_sum} bytes).`;
         },
         dele: {
             deleted: (index: number, connection: PopServerConnection) => {
@@ -106,7 +106,7 @@ export const Dutch = {
         },
         apop: {
             logged_in: (connection: PopServerConnection) => {
-                return `maildrop heeft ${connection.session.messages?.length} berichten (${connection.session.messages_size_sum} bytes)`;
+                return `maildrop heeft ${connection.session.available_message_count} berichten (${connection.session.available_messages_size_sum} bytes)`;
             },
         },
         top: {

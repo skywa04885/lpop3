@@ -45,7 +45,7 @@ export const English = {
             },
         },
         no_such_message: (connection: PopServerConnection) => {
-            return `no such message, only ${connection.session.messages?.length} messages in maildrop.`;
+            return `no such message, only ${connection.session.available_message_count} messages in maildrop.`;
         },
         permission_denied: (connection: PopServerConnection) => {
             return `permission denied.`;
@@ -86,10 +86,10 @@ export const English = {
             },
         },
         list: (connection: PopServerConnection) => {
-            return `${connection.session.messages?.length} (${connection.session.messages_size_sum} octets)`;
+            return `${connection.session.available_message_count} (${connection.session.available_messages_size_sum} octets)`;
         },
         rset: (connection: PopServerConnection) => {
-            return `maildrop has ${connection.session.messages?.length} messages (${connection.session.messages_size_sum} octets).`;
+            return `maildrop has ${connection.session.available_message_count} messages (${connection.session.available_messages_size_sum} octets).`;
         },
         dele: {
             deleted: (index: number, connection: PopServerConnection) => {
@@ -106,7 +106,7 @@ export const English = {
         },
         apop: {
             logged_in: (connection: PopServerConnection) => {
-                return `maildrop has ${connection.session.messages?.length} messages (${connection.session.messages_size_sum} octets)`;
+                return `maildrop has ${connection.session.available_message_count} messages (${connection.session.available_messages_size_sum} octets)`;
             },
         },
         top: {

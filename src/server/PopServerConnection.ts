@@ -185,7 +185,7 @@ export class PopServerConnection extends EventEmitter {
         // Gets the index and subtracts one, and if the message does not exist
         //  send an error.
         const index: number = parseInt(command.arguments[0]) - 1;
-        if (index < 0 || index >= this.session.messages.length) {
+        if (index < 0 || index >= this.session.available_message_count) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                 this.session.language.failure.no_such_message(this)).encode(true));
             return;
@@ -195,7 +195,7 @@ export class PopServerConnection extends EventEmitter {
         const desired_lines_after_header: number = parseInt(command.arguments[1]);
 
         // Gets the message.
-        let message: PopMessage = this.session.messages[index];
+        let message: PopMessage = this.session.available_messages[index];
 
         // Checks if the message is marked for deletion already.
         if ((message.flags & PopMessageFlag.Delete) !== 0) {
@@ -348,7 +348,7 @@ export class PopServerConnection extends EventEmitter {
             // Gets the index and subtracts one, and if the message does not exist
             //  send an error.
             const index: number = parseInt(command.arguments[0]) - 1;
-            if (index < 0 || index >= this.session.messages.length) {
+            if (index < 0 || index >= this.session.available_message_count) {
                 this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                     this.session.language.failure.no_such_message(this)).encode(true));
                 return;
@@ -356,7 +356,7 @@ export class PopServerConnection extends EventEmitter {
 
             // Sends the UID for the given message.
             this.pop_sock.write(new PopResponse(PopResponseType.Success,
-                [(index + 1).toString(), this.session.messages[index].size.toString()]).encode(true));
+                [(index + 1).toString(), this.session.available_messages[index].size.toString()]).encode(true));
             return;
         }
 
@@ -365,7 +365,7 @@ export class PopServerConnection extends EventEmitter {
             this.session.language.success.list(this)).encode(true));
 
         // Writes the list of all message sizes.
-        this.session.messages.forEach((message: PopMessage, index: number) => {
+        this.session.available_messages.forEach((message: PopMessage, index: number) => {
             PopMultilineResponse.write_line([(index + 1).toString(), message.size.toString()], this.pop_sock);
         });
         PopMultilineResponse.write_end(this.pop_sock);
@@ -399,14 +399,14 @@ export class PopServerConnection extends EventEmitter {
         // Gets the index and subtracts one, and if the message does not exist
         //  send an error.
         const index: number = parseInt(command.arguments[0]) - 1;
-        if (index < 0 || index >= this.session.messages.length) {
+        if (index < 0 || index >= this.session.available_message_count) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                 this.session.language.failure.no_such_message(this)).encode(true));
             return;
         }
 
         // Gets the message.
-        let message: PopMessage = this.session.messages[index];
+        let message: PopMessage = this.session.available_messages[index];
 
         // Checks if the message is marked for deletion already.
         if ((message.flags & PopMessageFlag.Delete) !== 0) {
@@ -451,14 +451,14 @@ export class PopServerConnection extends EventEmitter {
         // Gets the index and subtracts one, and if the message does not exist
         //  send an error.
         const index: number = parseInt(command.arguments[0]) - 1;
-        if (index < 0 || index >= this.session.messages.length) {
+        if (index < 0 || index >= this.session.available_message_count) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                 this.session.language.failure.no_such_message(this)).encode(true));
             return;
         }
 
         // Gets the message content.
-        const message: PopMessage = this.session.messages[index];
+        const message: PopMessage = this.session.available_messages[index];
         const content: string = await message.contents();
 
         // Splits the message content into lines (this is required to filter for dots.);
@@ -492,10 +492,9 @@ export class PopServerConnection extends EventEmitter {
             throw new Error('Session has not loaded messages yet.');
         }
 
-
         // Writes the status response.
         this.pop_sock.write(new PopResponse(PopResponseType.Success,
-            [this.session.messages.length.toString(), this.session.messages_size_sum.toString()]).encode(true));
+            [this.session.available_message_count.toString(), this.session.available_messages_size_sum.toString()]).encode(true));
     }
 
     /**
@@ -527,7 +526,7 @@ export class PopServerConnection extends EventEmitter {
             // Gets the index and subtracts one, and if the message does not exist
             //  send an error.
             const index: number = parseInt(command.arguments[0]) - 1;
-            if (index < 0 || index >= this.session.messages.length) {
+            if (index < 0 || index >= this.session.available_message_count) {
                 this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                     this.session.language.failure.no_such_message(this)).encode(true));
                 return;
@@ -535,7 +534,7 @@ export class PopServerConnection extends EventEmitter {
 
             // Sends the UID for the given message.
             this.pop_sock.write(new PopResponse(PopResponseType.Success,
-                [(index + 1).toString(), this.session.messages[index].uid_string]).encode(true));
+                [(index + 1).toString(), this.session.available_messages[index].uid_string]).encode(true));
             return;
         }
 
@@ -544,7 +543,7 @@ export class PopServerConnection extends EventEmitter {
             this.session.language.success.uidl.all(this)).encode(true));
 
         // Writes the list of all message ID's.
-        this.session.messages.forEach((message: PopMessage, index: number) => {
+        this.session.available_messages.forEach((message: PopMessage, index: number) => {
             PopMultilineResponse.write_line([(index + 1).toString(), message.uid_string], this.pop_sock);
         });
         PopMultilineResponse.write_end(this.pop_sock);
