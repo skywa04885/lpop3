@@ -99,6 +99,7 @@ export class PopServer extends EventEmitter {
     protected _event_connection(secure: boolean, socket: net.Socket | tls.TLSSocket): void {
         const pop_sock: PopSocket = new PopSocket(secure, socket);
         pop_sock.on('close', (_: boolean) => this.emit('client_disconnected', secure, pop_sock));
+        pop_sock.on('error', (err: Error) => {});
         pop_sock.set_timeout(this.timeout);
 
         const session: PopServerSession = new PopServerSession(this.config.default_language);
