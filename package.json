@@ -1,12 +1,12 @@
 {
   "name": "lpop3",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "NodeJS & TypeScript POP3 and POP3S Server.",
   "main": "lib/main.js",
   "scripts": {
     "test": "mocha \"dist/tests/**/*.js\"",
     "build": "tsc",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build"
   },
   "author": "",
   "license": "MIT",
