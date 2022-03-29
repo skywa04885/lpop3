@@ -34,7 +34,7 @@ async function is_in_use(_: PopServerConnection): Promise<boolean> {
     return false;
 }
 
-function compare_password(password: string, hash:string): boolean {
+async function compare_password(password: string, hash:string): Promise<boolean> {
     return password === hash;
 }
 

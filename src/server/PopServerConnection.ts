@@ -653,7 +653,7 @@ export class PopServerConnection extends EventEmitter {
         const pass: string = command.arguments[0];
 
         // Checks the password.
-        if (!this.server.config.compare_password(pass, this.session.user.pass)) {
+        if (!(await this.server.config.compare_password(pass, this.session.user.pass))) {
             this.pop_sock.write(new PopResponse(PopResponseType.Failure,
                 this.session.language.failure.pass.rejected(this), PopExtRespCode.Auth).encode(true));
             return;
