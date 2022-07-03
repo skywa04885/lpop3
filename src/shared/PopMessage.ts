@@ -31,7 +31,7 @@ export class PopMessage {
      */
     public async contents(): Promise<string> {
         if (!this._contents) {
-            await this.load_contents();
+            this._contents = await this.load_contents();
         }
 
         return this._contents as string;
